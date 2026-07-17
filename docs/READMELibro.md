@@ -642,6 +642,14 @@ Condiciones antes de publicar:
 - Revisar firewall y registros.
 - No publicar PostgreSQL ni el puerto `5432`.
 
+Preparacion tecnica incorporada:
+
+- Express escucha en `127.0.0.1` cuando `NODE_ENV=production`.
+- Caddy se considera proxy de confianza solo desde loopback mediante `TRUST_PROXY=loopback`.
+- El backend incluye `db:backup` y `db:restore` para PostgreSQL.
+- Cada respaldo utiliza formato custom, genera SHA-256 y aplica retencion configurable.
+- La restauracion exige confirmacion explicita con `-Force` y debe ejecutarse con el backend detenido.
+
 Si la PC se apaga o pierde internet, la aplicacion deja de estar disponible. Un dominio comercial puede incorporarse mas adelante, pero no es obligatorio para la primera publicacion.
 
 ## 26. Evolucion futura
