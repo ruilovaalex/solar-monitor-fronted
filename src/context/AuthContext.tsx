@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useMemo, useState } from "react";
+import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
 import { api } from "@/services/api";
 import { AuthSession, Permission, User } from "@/types";
 
@@ -15,6 +15,12 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(() => api.getSession());
+
+  useEffect(() => {
+    const handleUnauthorized = () => setSession(null);
+    window.addEventListener("auth:unauthorized", handleUnauthorized);
+    return () => window.removeEventListener("auth:unauthorized", handleUnauthorized);
+  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({

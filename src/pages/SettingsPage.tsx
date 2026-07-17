@@ -1,123 +1,215 @@
-import { Database, KeyRound, Lock, ShieldCheck, ToggleLeft, Users } from "lucide-react";
+import { FormEvent, useState } from "react";
+import { Plus, Trash2, UserRound, Users } from "lucide-react";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
-import { StatusPill } from "@/components/common/StatusPill";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { api } from "@/services/api";
-import { useUsers } from "@/hooks/useUsers";
 import { useAuth } from "@/context/AuthContext";
+import { useUsers } from "@/hooks/useUsers";
+import { api } from "@/services/api";
+
+const initialForm = {
+  name: "",
+  email: "",
+  password: "",
+};
 
 export function SettingsPage() {
-  const { user, can } = useAuth();
-  const { data: users = [] } = useUsers();
+  const { user: currentUser } = useAuth();
+  const { data: users = [], mutate } = useUsers();
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(initialForm);
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [userToDelete, setUserToDelete] = useState<{ id: string; name: string; email: string } | null>(null);
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+
+    if (!form.name.trim() || !form.email.trim() || form.password.length < 6) {
+      toast.error("Completa los datos y usa una contraseña de al menos 6 caracteres");
+      return;
+    }
+
+    if (users.some((user) => user.email.toLowerCase() === form.email.toLowerCase())) {
+      toast.error("Ya existe un usuario con ese correo");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await api.createUser(form);
+      await mutate();
+      setForm(initialForm);
+      setShowForm(false);
+      toast.success("Usuario creado correctamente");
+    } catch {
+      toast.error("No se pudo crear el usuario");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const requestDeleteUser = (user: { id: string; name: string; email: string }) => {
+    if (user.id === currentUser?.id) {
+      toast.error("No puedes eliminar tu propia cuenta mientras estas conectado");
+      return;
+    }
+
+    setUserToDelete(user);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    setDeletingUserId(userToDelete.id);
+    try {
+      await api.deleteUser(userToDelete.id);
+      await mutate();
+      setUserToDelete(null);
+      toast.success("Usuario eliminado correctamente");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo eliminar el usuario");
+    } finally {
+      setDeletingUserId(null);
+    }
+  };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6">
       <PageHeader
-        eyebrow="Arquitectura preparada"
-        title="Configuracion de plataforma"
-        description="Ajustes frontend para APIs futuras, autenticacion JWT, permisos, usuarios y comportamiento mock."
+        eyebrow="Administración"
+        title="Usuarios"
+        description="El administrador únicamente crea cuentas. Los usuarios acceden al monitoreo de consumo y generación."
+        action={
+          <Button onClick={() => setShowForm((current) => !current)}>
+            <Plus className="h-4 w-4" />
+            Nuevo usuario
+          </Button>
+        }
       />
 
-      <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="space-y-6">
-          <article className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="flex items-center gap-2 text-lg font-bold text-white">
-                  <Database className="h-5 w-5 text-emerald-300" />
-                  API futura
-                </h2>
-                <p className="mt-1 text-sm text-slate-400">Contrato desacoplado del backend.</p>
-              </div>
-              <StatusPill status={api.config.useMockData ? "attention" : "online"} />
+      {showForm && (
+        <form className="rounded-2xl border border-slate-200 bg-white p-6" onSubmit={handleSubmit}>
+          <h2 className="text-lg font-bold text-slate-900">Crear usuario operativo</h2>
+          <p className="mt-1 text-sm text-slate-500">La cuenta tendrá acceso a dashboard, dispositivos y monitoreo.</p>
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nombre</Label>
+              <Input id="name" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Correo</Label>
+              <Input id="email" type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="password">Contraseña temporal</Label>
+              <Input
+                id="password"
+                type="password"
+                minLength={6}
+                value={form.password}
+                onChange={(event) => setForm({ ...form, password: event.target.value })}
+              />
+            </div>
+          </div>
+          <div className="mt-5 flex justify-end gap-3">
+            <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancelar</Button>
+            <Button type="submit" disabled={isSaving}>{isSaving ? "Creando..." : "Crear usuario"}</Button>
+          </div>
+        </form>
+      )}
 
-            <div className="mt-5 space-y-4">
-              <div className="space-y-2">
-                <Label className="text-slate-300">Base URL</Label>
-                <Input value={api.config.baseUrl} readOnly className="border-white/10 bg-slate-950/60 text-slate-300" />
-              </div>
-              <div className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-950/50 p-4">
-                <div>
-                  <p className="font-bold text-white">Modo mock</p>
-                  <p className="text-sm text-slate-400">Usa datos simulados para todas las vistas.</p>
-                </div>
-                <Switch checked={api.config.useMockData} />
-              </div>
-            </div>
-          </article>
-
-          <article className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-            <h2 className="flex items-center gap-2 text-lg font-bold text-white">
-              <KeyRound className="h-5 w-5 text-blue-300" />
-              Seguridad
-            </h2>
-            <div className="mt-5 space-y-3">
-              <SecurityItem icon={Lock} label="JWT Authentication" enabled />
-              <SecurityItem icon={ShieldCheck} label="Roles de usuario" enabled />
-              <SecurityItem icon={ToggleLeft} label="Permisos por modulo" enabled />
-            </div>
-          </article>
+      <section className="rounded-2xl border border-slate-200 bg-white">
+        <div className="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
+          <Users className="h-5 w-5 text-slate-600" />
+          <div>
+            <h2 className="font-bold text-slate-900">Cuentas registradas</h2>
+            <p className="text-sm text-slate-500">{users.length} usuarios registrados en la base de datos</p>
+          </div>
         </div>
-
-        <article className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="flex items-center gap-2 text-lg font-bold text-white">
-                <Users className="h-5 w-5 text-emerald-300" />
-                Usuarios y permisos
-              </h2>
-              <p className="mt-1 text-sm text-slate-400">Datos simulados para preparar multiusuario.</p>
-            </div>
-            <Button disabled={!can("users:manage")} className="bg-emerald-400 font-black text-slate-950 hover:bg-emerald-300">
-              Nuevo usuario
-            </Button>
-          </div>
-
-          <div className="mt-5 space-y-3">
-            {users.map((item) => (
-              <div key={item.id} className="rounded-xl border border-white/10 bg-slate-950/50 p-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="font-bold text-white">{item.name}</p>
-                    <p className="text-sm text-slate-400">{item.email}</p>
-                  </div>
-                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-black uppercase tracking-wider text-slate-300">
-                    {item.role}
-                  </span>
+        <div className="divide-y divide-slate-200">
+          {users.map((user) => (
+            <article key={user.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="rounded-full bg-slate-100 p-2.5 text-slate-600">
+                  <UserRound className="h-5 w-5" />
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {item.permissions.map((permission) => (
-                    <span key={permission} className="rounded-full bg-white/5 px-2 py-1 text-xs text-slate-400">
-                      {permission}
-                    </span>
-                  ))}
+                <div>
+                  <p className="font-bold text-slate-900">{user.name}</p>
+                  <p className="text-sm text-slate-500">{user.email}</p>
                 </div>
               </div>
-            ))}
-          </div>
-
-          <div className="mt-5 rounded-xl border border-blue-400/20 bg-blue-400/10 p-4 text-sm leading-6 text-blue-100/80">
-            Usuario actual: <span className="font-bold text-white">{user?.name}</span>. La autorizacion ya puede
-            conectarse a claims reales cuando exista backend.
-          </div>
-        </article>
+              <div className="flex items-center gap-2">
+                <span className={`w-fit rounded-full border px-3 py-1 text-xs font-bold uppercase ${
+                  user.role === "admin"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                    : "border-slate-200 bg-slate-50 text-slate-600"
+                }`}>
+                  {user.role === "admin" ? "Administrador" : "Operador"}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="rounded-2xl border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800"
+                  disabled={deletingUserId === user.id || user.id === currentUser?.id}
+                  onClick={() => requestDeleteUser(user)}
+                  aria-label={`Eliminar usuario ${user.name}`}
+                  title={user.id === currentUser?.id ? "No puedes eliminar tu propia cuenta" : "Eliminar usuario"}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {deletingUserId === user.id ? "Eliminando..." : "Eliminar"}
+                </Button>
+              </div>
+            </article>
+          ))}
+        </div>
       </section>
-    </div>
-  );
-}
 
-function SecurityItem({ icon: Icon, label, enabled }: { icon: typeof Lock; label: string; enabled: boolean }) {
-  return (
-    <div className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-950/50 p-4">
-      <div className="flex items-center gap-3">
-        <Icon className="h-4 w-4 text-slate-400" />
-        <span className="text-sm font-bold text-slate-200">{label}</span>
-      </div>
-      <span className="text-xs font-black uppercase tracking-wider text-emerald-300">{enabled ? "Preparado" : "Pendiente"}</span>
+      {userToDelete ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm">
+          <section className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
+            <div className="flex items-start gap-4">
+              <div className="rounded-2xl bg-rose-50 p-3 text-rose-700">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-lg font-black text-slate-950">Eliminar cuenta</p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Vas a eliminar la cuenta de <strong className="text-slate-950">{userToDelete.name}</strong>.
+                  Esta acción no se puede deshacer.
+                </p>
+                <p className="mt-2 break-all rounded-2xl bg-slate-50 px-3 py-2 text-sm text-slate-500">
+                  {userToDelete.email}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-2xl"
+                disabled={deletingUserId === userToDelete.id}
+                onClick={() => setUserToDelete(null)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                className="rounded-2xl bg-rose-600 text-white hover:bg-rose-700"
+                disabled={deletingUserId === userToDelete.id}
+                onClick={confirmDeleteUser}
+              >
+                <Trash2 className="h-4 w-4" />
+                {deletingUserId === userToDelete.id ? "Eliminando..." : "Eliminar cuenta"}
+              </Button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }

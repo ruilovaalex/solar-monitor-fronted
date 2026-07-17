@@ -3,6 +3,7 @@ import {
   AreaChart,
   CartesianGrid,
   Legend,
+  Line,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -10,12 +11,29 @@ import {
 } from "recharts";
 import { EnergyPoint } from "@/types";
 
+type AxisValueFormatter = (value: number) => string;
+type LabelFormatter = (value: string) => string;
+type AxisDomainValue = number | string | ((value: number) => number);
+
 interface EnergyAreaChartProps {
   data: EnergyPoint[];
   height?: number;
+  showBalance?: boolean;
+  xTickFormatter?: LabelFormatter;
+  tooltipLabelFormatter?: LabelFormatter;
+  yTickFormatter?: AxisValueFormatter;
+  yDomain?: [AxisDomainValue, AxisDomainValue];
 }
 
-export function EnergyAreaChart({ data, height = 360 }: EnergyAreaChartProps) {
+export function EnergyAreaChart({
+  data,
+  height = 360,
+  showBalance = false,
+  xTickFormatter = (value) => new Date(value).getHours().toString().padStart(2, "0"),
+  tooltipLabelFormatter = (value) => new Date(value).toLocaleString("es-EC", { timeStyle: "short" }),
+  yTickFormatter = (value) => `${Number(value).toFixed(1)} kW`,
+  yDomain,
+}: EnergyAreaChartProps) {
   return (
     <div className="w-full" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
@@ -30,31 +48,41 @@ export function EnergyAreaChart({ data, height = 360 }: EnergyAreaChartProps) {
               <stop offset="95%" stopColor="#38bdf8" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" vertical={false} />
+          <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
           <XAxis
             dataKey="timestamp"
-            tickFormatter={(value) => new Date(value).getHours().toString().padStart(2, "0")}
+            tickFormatter={xTickFormatter}
             stroke="#64748b"
             fontSize={12}
             tickLine={false}
             axisLine={false}
+            minTickGap={24}
+            tickMargin={10}
           />
-          <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+          <YAxis
+            stroke="#64748b"
+            fontSize={12}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={yTickFormatter}
+            domain={yDomain}
+            width={56}
+          />
           <Tooltip
             contentStyle={{
-              background: "#020617",
-              border: "1px solid rgba(148, 163, 184, 0.2)",
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
               borderRadius: 12,
-              color: "#e2e8f0",
+              color: "#0f172a",
             }}
-            labelFormatter={(value) => new Date(value).toLocaleString("es-EC", { timeStyle: "short" })}
-            formatter={(value: number, name) => [`${Number(value).toFixed(2)} kWh`, name]}
+            labelFormatter={tooltipLabelFormatter}
+            formatter={(value: number, name) => [`${formatTooltipValue(value)} kW`, name]}
           />
-          <Legend />
+          <Legend wrapperStyle={{ paddingTop: 10 }} />
           <Area
             type="monotone"
-            name="Generacion"
-            dataKey="generationKwh"
+            name="Generación"
+            dataKey="generationPowerKw"
             stroke="#34d399"
             strokeWidth={3}
             fill="url(#generation)"
@@ -62,13 +90,29 @@ export function EnergyAreaChart({ data, height = 360 }: EnergyAreaChartProps) {
           <Area
             type="monotone"
             name="Consumo"
-            dataKey="consumptionKwh"
+            dataKey="consumptionPowerKw"
             stroke="#38bdf8"
             strokeWidth={3}
             fill="url(#consumption)"
           />
+          {showBalance ? (
+            <Line
+              type="monotone"
+              name="Balance"
+              dataKey="powerBalanceKw"
+              stroke="#f59e0b"
+              strokeWidth={2.5}
+              dot={false}
+              activeDot={{ r: 4 }}
+            />
+          ) : null}
         </AreaChart>
       </ResponsiveContainer>
     </div>
   );
+}
+
+function formatTooltipValue(value: unknown) {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue.toFixed(2) : "0.00";
 }

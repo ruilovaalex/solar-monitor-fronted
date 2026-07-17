@@ -1,9 +1,10 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap");
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-heading: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fredoka", "Inter", ui-sans-serif, system-ui, sans-serif;
 
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
@@ -33,26 +34,26 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  color-scheme: dark;
-  --background: 222 47% 5%;
-  --foreground: 210 40% 98%;
-  --card: 222 47% 8%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222 47% 7%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 156 72% 56%;
-  --primary-foreground: 222 47% 5%;
-  --secondary: 217 33% 17%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217 33% 17%;
-  --muted-foreground: 215 20% 65%;
+  color-scheme: light;
+  --background: 0 0% 100%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 160 84% 30%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 40% 96%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
   --accent: 199 89% 48%;
-  --accent-foreground: 210 40% 98%;
+  --accent-foreground: 222 47% 11%;
   --destructive: 0 84% 60%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217 33% 22%;
-  --input: 217 33% 18%;
-  --ring: 156 72% 56%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 160 84% 30%;
   --radius: 0.75rem;
 }
 
@@ -62,7 +63,7 @@
   }
 
   html {
-    @apply bg-slate-950;
+    @apply bg-white;
   }
 
   body {
@@ -73,6 +74,175 @@
   a,
   input,
   select {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:ring-offset-2 focus-visible:ring-offset-white;
+  }
+}
+
+@layer utilities {
+  .app-shell-bg {
+    background:
+      radial-gradient(circle at top left, rgba(16, 185, 129, 0.12), transparent 26%),
+      radial-gradient(circle at top right, rgba(14, 165, 233, 0.1), transparent 24%),
+      linear-gradient(180deg, #f6fbf9 0%, #f8fbff 38%, #f4f8fb 100%);
+  }
+
+  .app-shell-grid::before {
+    background:
+      linear-gradient(rgba(15, 23, 42, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(15, 23, 42, 0.03) 1px, transparent 1px);
+    background-size: 72px 72px;
+    content: "";
+    inset: 0;
+    pointer-events: none;
+    position: absolute;
+  }
+
+  .surface-panel {
+    background: rgba(255, 255, 255, 0.84);
+    backdrop-filter: blur(18px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+  }
+
+  .surface-card {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.92) 100%);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+  }
+
+  .brand-image {
+    filter: drop-shadow(0 14px 28px rgba(15, 23, 42, 0.12));
+  }
+
+  @keyframes rotateSun {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes floatPanel {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.7;
+      transform: scale(1.05);
+    }
+  }
+
+  @keyframes shimmer {
+    from {
+      background-position: -200% 0;
+    }
+    to {
+      background-position: 200% 0;
+    }
+  }
+
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes ambientShift {
+    0%,
+    100% {
+      opacity: 0.8;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: translate3d(18px, -12px, 0) scale(1.08);
+    }
+  }
+
+  @keyframes panelReveal {
+    from {
+      opacity: 0;
+      transform: translateY(18px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes glowBreath {
+    0%,
+    100% {
+      opacity: 0.65;
+      transform: translateY(-50%) scale(1);
+    }
+    50% {
+      opacity: 0.95;
+      transform: translateY(-50%) scale(1.06);
+    }
+  }
+
+  .login-sun {
+    animation: rotateSun 12s linear infinite;
+  }
+
+  .login-pill {
+    animation: pulse 3s ease-in-out infinite;
+  }
+
+  .login-form-fade {
+    animation: fadeUp 0.6s ease-out both;
+  }
+
+  .login-ambient {
+    animation: ambientShift 8s ease-in-out infinite;
+  }
+
+  .login-panel-reveal {
+    animation: panelReveal 0.75s ease-out both;
+  }
+
+  .login-glow {
+    animation: glowBreath 5s ease-in-out infinite;
+  }
+
+  .login-submit {
+    position: relative;
+  }
+
+  .login-submit::after {
+    animation: shimmer 2.5s linear infinite;
+    background: linear-gradient(
+      110deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.18) 35%,
+      rgba(255, 255, 255, 0.55) 50%,
+      rgba(255, 255, 255, 0.18) 65%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    content: "";
+    inset: 0;
+    pointer-events: none;
+    position: absolute;
   }
 }
